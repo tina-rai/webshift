@@ -20,6 +20,39 @@ function detectFramework(): string {
   return 'Unknown'
 }
 
+function analyzePage(): PageAnalysis {
+  const images = document.images
+
+  const imagesWithoutAlt = Array.from(images).filter(
+    (image) => !image.hasAttribute('alt')
+  ).length
+
+  const externalLinks = Array.from(document.links).filter(
+    (link) => link.origin !== window.location.origin
+  ).length
+
+  return {
+    title: document.title,
+    url: window.location.href,
+
+    domNodes: document.querySelectorAll('*').length,
+    images: images.length,
+    links: document.links.length,
+    scripts: document.scripts.length,
+
+    framework: detectFramework(),
+
+    headings: document.querySelectorAll('h1, h2, h3, h4, h5, h6').length,
+    buttons: document.querySelectorAll('button').length,
+    forms: document.forms.length,
+    inputs: document.querySelectorAll('input, textarea, select').length,
+
+    externalLinks,
+
+    imagesWithoutAlt,
+  }
+}
+
 chrome.runtime.onMessage.addListener(
   (
     message: AnalyzePageMessage,
@@ -30,19 +63,9 @@ chrome.runtime.onMessage.addListener(
       return
     }
 
-    const analysis: PageAnalysis = {
-      title: document.title,
-      url: window.location.href,
-      domNodes: document.querySelectorAll('*').length,
-      images: document.images.length,
-      links: document.links.length,
-      scripts: document.scripts.length,
-      framework: detectFramework(),
-    }
-
     sendResponse({
       type: 'PAGE_ANALYSIS',
-      data: analysis,
+      data: analyzePage(),
     })
   }
 )

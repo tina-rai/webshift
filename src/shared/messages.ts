@@ -6,6 +6,12 @@ export interface PageAnalysis {
     links: number
     scripts: number
     framework: string
+    headings: number
+    buttons: number
+    forms: number
+    inputs: number
+    externalLinks: number
+    imagesWithoutAlt: number
   }
   
   export interface AnalyzePageMessage {

@@ -56,36 +56,56 @@ function App() {
         </p>
       )}
 
-      {analysis && (
-        <section className="mt-5 space-y-2 text-sm">
-          <h2 className="font-semibold">
-            Page Analysis
-          </h2>
+{analysis && (
+  <section className="mt-5 space-y-4 text-sm">
+    <div>
+      <h2 className="font-semibold">Basic</h2>
 
-          <p>
-            <strong>Title:</strong> {analysis.title}
-          </p>
+      <div className="mt-2 space-y-1">
+        <p><strong>Title:</strong> {analysis.title}</p>
+        <p><strong>DOM nodes:</strong> {analysis.domNodes}</p>
+        <p><strong>Images:</strong> {analysis.images}</p>
+        <p><strong>Links:</strong> {analysis.links}</p>
+        <p><strong>Scripts:</strong> {analysis.scripts}</p>
+      </div>
+    </div>
 
-          <p>
-            <strong>DOM nodes:</strong> {analysis.domNodes}
-          </p>
+    <div>
+      <h2 className="font-semibold">Structure</h2>
 
-          <p>
-            <strong>Images:</strong> {analysis.images}
-          </p>
+      <div className="mt-2 space-y-1">
+        <p><strong>Headings:</strong> {analysis.headings}</p>
+        <p><strong>Buttons:</strong> {analysis.buttons}</p>
+        <p><strong>Forms:</strong> {analysis.forms}</p>
+        <p><strong>Inputs:</strong> {analysis.inputs}</p>
+      </div>
+    </div>
 
-          <p>
-            <strong>Links:</strong> {analysis.links}
-          </p>
+    <div>
+      <h2 className="font-semibold">Links</h2>
 
-          <p>
-            <strong>Scripts:</strong> {analysis.scripts}
-          </p>
-          <p>
-  <strong>Framework:</strong> {analysis.framework}
-</p>
-        </section>
-      )}
+      <p className="mt-2">
+        <strong>External links:</strong> {analysis.externalLinks}
+      </p>
+    </div>
+
+    <div>
+      <h2 className="font-semibold">Accessibility</h2>
+
+      <p className="mt-2">
+        <strong>Images without alt:</strong> {analysis.imagesWithoutAlt}
+      </p>
+    </div>
+
+    <div>
+      <h2 className="font-semibold">Technology</h2>
+
+      <p className="mt-2">
+        <strong>Framework:</strong> {analysis.framework}
+      </p>
+    </div>
+  </section>
+)}
     </main>
   )
 }
