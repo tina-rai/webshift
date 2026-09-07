@@ -5,21 +5,62 @@ import type {
 } from '../shared/messages'
 
 function detectFramework(): string {
-  if (document.querySelector('[data-reactroot]')) {
+  // React
+  if (
+    document.querySelector('[data-reactroot]') ||
+    document.querySelector('[data-react-helmet]') ||
+    document.querySelector('[id^="__next"]') ||
+    document.querySelector('script[src*="react"]')
+  ) {
     return 'React'
   }
 
-  if (document.querySelector('[ng-version]')) {
+  // Angular
+  if (
+    document.querySelector('[ng-version]') ||
+    document.querySelector('[_nghost]') ||
+    document.querySelector('[_ngcontent]')
+  ) {
     return 'Angular'
   }
 
-  if (document.querySelector('[data-v-app]')) {
+  // Vue
+  if (
+    document.querySelector('[data-v-app]') ||
+    document.querySelector('[data-vue-meta]')
+  ) {
     return 'Vue'
+  }
+
+  // Svelte
+  if (
+    document.querySelector('[class*="svelte-"]') ||
+    document.querySelector('[data-svelte]')
+  ) {
+    return 'Svelte'
   }
 
   return 'Unknown'
 }
+function detectMetaFramework(): string {
+  // Next.js
+  if (
+    document.querySelector('#__next') ||
+    document.querySelector('script[src*="_next/"]')
+  ) {
+    return 'Next.js'
+  }
 
+  // Nuxt
+  if (
+    document.querySelector('#__nuxt') ||
+    document.querySelector('#__NUXT__')
+  ) {
+    return 'Nuxt'
+  }
+
+  return 'None detected'
+}
 function analyzePage(): PageAnalysis {
   const images = document.images
 
@@ -41,7 +82,7 @@ function analyzePage(): PageAnalysis {
     scripts: document.scripts.length,
 
     framework: detectFramework(),
-
+    metaFramework: detectMetaFramework(),
     headings: document.querySelectorAll('h1, h2, h3, h4, h5, h6').length,
     buttons: document.querySelectorAll('button').length,
     forms: document.forms.length,

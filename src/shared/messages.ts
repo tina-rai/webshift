@@ -6,6 +6,7 @@ export interface PageAnalysis {
     links: number
     scripts: number
     framework: string
+    metaFramework: string
     headings: number
     buttons: number
     forms: number

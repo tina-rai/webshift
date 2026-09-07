@@ -98,12 +98,18 @@ function App() {
     </div>
 
     <div>
-      <h2 className="font-semibold">Technology</h2>
+  <h2 className="font-semibold">Technology</h2>
 
-      <p className="mt-2">
-        <strong>Framework:</strong> {analysis.framework}
-      </p>
-    </div>
+  <div className="mt-2 space-y-1">
+    <p>
+      <strong>Framework:</strong> {analysis.framework}
+    </p>
+
+    <p>
+      <strong>Meta-framework:</strong> {analysis.metaFramework}
+    </p>
+  </div>
+</div>
   </section>
 )}
     </main>
