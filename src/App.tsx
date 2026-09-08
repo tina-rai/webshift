@@ -1,29 +1,33 @@
-import { useState } from 'react'
-import type { PageAnalysis } from './shared/messages'
+import { useState, useEffect } from 'react'
+import type { PageAnalysis,   AmoledStateResponse, AnalyzePageResponse,} from './shared/messages'
 
 function App() {
   const [analysis, setAnalysis] = useState<PageAnalysis | null>(null)
   const [loading, setLoading] = useState(false)
+  const [amoledEnabled, setAmoledEnabled] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const analyzePage = async () => {
     setLoading(true)
     setError(null)
-
+  
     try {
       const [tab] = await chrome.tabs.query({
         active: true,
         currentWindow: true,
       })
-
+  
       if (!tab.id) {
         throw new Error('Could not find the active tab.')
       }
-
-      const response = await chrome.tabs.sendMessage(tab.id, {
-        type: 'ANALYZE_PAGE',
-      })
-
+  
+      const response = await chrome.tabs.sendMessage(
+        tab.id,
+        {
+          type: 'ANALYZE_PAGE',
+        }
+      ) as AnalyzePageResponse
+  
       setAnalysis(response.data)
     } catch {
       setError('Unable to analyze this page.')
@@ -31,6 +35,36 @@ function App() {
       setLoading(false)
     }
   }
+  const getAmoledState = async () => {
+    try {
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      })
+  
+      if (!tab.id) {
+        return
+      }
+  
+      const response = await chrome.tabs.sendMessage(
+        tab.id,
+        {
+          type: 'GET_AMOLED_STATE',
+        }
+      ) as AmoledStateResponse
+  
+      setAmoledEnabled(response.enabled)
+    } catch (error) {
+      console.error(
+        'WebShift AMOLED state error:',
+        error
+      )
+    }
+  }
+  
+  useEffect(() => {
+    getAmoledState()
+  }, [])
 
   return (
     <main className="w-80 p-5">
@@ -41,6 +75,43 @@ function App() {
       <p className="mt-2 text-sm text-gray-500">
         Understand and transform the web.
       </p>
+      <div className="mt-5">
+  <h2 className="font-semibold">
+    Appearance
+  </h2>
+
+  <button
+    className="mt-2 rounded border px-3 py-2 text-sm"
+    onClick={async () => {
+      const enabled = !amoledEnabled
+
+      setAmoledEnabled(enabled)
+
+      try {
+        const [tab] = await chrome.tabs.query({
+          active: true,
+          currentWindow: true,
+        })
+
+        if (!tab.id) {
+          return
+        }
+
+        await chrome.tabs.sendMessage(tab.id, {
+          type: 'TOGGLE_AMOLED',
+          enabled,
+        })
+      } catch (error) {
+        console.error(
+          'WebShift AMOLED error:',
+          error
+        )
+      }
+    }}
+  >
+    {amoledEnabled ? 'Disable AMOLED' : 'Enable AMOLED'}
+  </button>
+</div> 
 
       <button
         onClick={analyzePage}

@@ -3,7 +3,8 @@ import type {
   AnalyzePageResponse,
   PageAnalysis,
   TechnologyDiagnostics,
-
+  ToggleAmoledMessage,
+  GetAmoledStateMessage,
 } from '../shared/messages'
 
 interface DetectionResult {
@@ -334,20 +335,110 @@ function analyzePage(): PageAnalysis {
       diagnostics,
     }
   }
+  let amoledEnabled = false
 
-chrome.runtime.onMessage.addListener(
-  (
-    message: AnalyzePageMessage,
-    _sender,
-    sendResponse: (response: AnalyzePageResponse) => void
-  ) => {
-    if (message.type !== 'ANALYZE_PAGE') {
+  function toggleAmoled(enabled: boolean) {
+    const styleId = 'webshift-amoled'
+  
+    const existingStyle = document.getElementById(styleId)
+  
+    if (!enabled) {
+      existingStyle?.remove()
+      amoledEnabled = false
       return
     }
-
-    sendResponse({
-      type: 'PAGE_ANALYSIS',
-      data: analyzePage(),
-    })
+  
+    if (existingStyle) {
+      amoledEnabled = true
+      return
+    }
+  
+    const style = document.createElement('style')
+  
+    style.id = styleId
+  
+    style.textContent = `
+    html {
+      background: #000 !important;
+    }
+  
+    body {
+      background: #000 !important;
+      color: #fff !important;
+    }
+  
+    body,
+    main,
+    section,
+    article,
+    aside,
+    header,
+    footer,
+    nav {
+      background-color: #000 !important;
+      color: #fff !important;
+    }
+  
+    [role="dialog"],
+    [role="menu"],
+    [role="tooltip"],
+    [role="listbox"] {
+      background-color: #0a0a0a !important;
+      color: #fff !important;
+    }
+  
+    a {
+      color: #66b3ff !important;
+    }
+  
+    button,
+    input,
+    textarea,
+    select {
+      background-color: #111 !important;
+      color: #fff !important;
+      border-color: #333 !important;
+    }
+  
+    ::placeholder {
+      color: #888 !important;
+    }
+  `
+  
+    document.head.appendChild(style)
+  
+    amoledEnabled = true
   }
-)
+  chrome.runtime.onMessage.addListener(
+    (
+      message:
+        | AnalyzePageMessage
+        | ToggleAmoledMessage
+        | GetAmoledStateMessage,
+      _sender,
+      sendResponse
+    ) => {
+      if (message.type === 'ANALYZE_PAGE') {
+        const response: AnalyzePageResponse = {
+          type: 'PAGE_ANALYSIS',
+          data: analyzePage(),
+        }
+  
+        sendResponse(response)
+  
+        return
+      }
+  
+      if (message.type === 'TOGGLE_AMOLED') {
+        toggleAmoled(message.enabled)
+        return
+      }
+  
+      if (message.type === 'GET_AMOLED_STATE') {
+        sendResponse({
+          type: 'AMOLED_STATE',
+          enabled: amoledEnabled,
+        })
+      }
+    }
+  )

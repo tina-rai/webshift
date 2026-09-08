@@ -43,3 +43,16 @@ export interface AnalyzePageResponse {
   type: 'PAGE_ANALYSIS'
   data: PageAnalysis
 }
+export interface ToggleAmoledMessage {
+  type: 'TOGGLE_AMOLED'
+  enabled: boolean
+}
+
+export interface GetAmoledStateMessage {
+  type: 'GET_AMOLED_STATE'
+}
+
+export interface AmoledStateResponse {
+  type: 'AMOLED_STATE'
+  enabled: boolean
+}
