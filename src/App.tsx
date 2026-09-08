@@ -106,10 +106,43 @@ function App() {
     </p>
 
     <p>
+      <strong>Confidence:</strong> {analysis.frameworkConfidence}
+    </p>
+
+    <p>
       <strong>Meta-framework:</strong> {analysis.metaFramework}
     </p>
+
+    <p>
+      <strong>Confidence:</strong> {analysis.metaFrameworkConfidence}
+    </p>
+
+    {analysis.frameworkEvidence.length > 0 && (
+      <div className="mt-2">
+        <p className="font-medium">Framework evidence:</p>
+
+        <ul className="list-disc pl-5">
+          {analysis.frameworkEvidence.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+    {analysis.metaFrameworkEvidence.length > 0 && (
+      <div className="mt-2">
+        <p className="font-medium">Meta-framework evidence:</p>
+
+        <ul className="list-disc pl-5">
+          {analysis.metaFrameworkEvidence.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      </div>
+    )}
   </div>
 </div>
+
   </section>
 )}
     </main>
