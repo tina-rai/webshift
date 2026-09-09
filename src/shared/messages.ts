@@ -56,3 +56,89 @@ export interface AmoledStateResponse {
   type: 'AMOLED_STATE'
   enabled: boolean
 }
+export interface ToggleDarkMessage {
+  type: 'TOGGLE_DARK'
+  enabled: boolean
+}
+
+export interface GetDarkStateMessage {
+  type: 'GET_DARK_STATE'
+}
+
+export interface DarkStateResponse {
+  type: 'DARK_STATE'
+  enabled: boolean
+}
+
+export interface SetFontMessage {
+  type: 'SET_FONT'
+  font: string
+}
+
+export interface SetTextSizeMessage {
+  type: 'SET_TEXT_SIZE'
+  size: number
+}
+export interface ToggleWideContentMessage {
+
+  type: 'TOGGLE_WIDE_CONTENT'
+
+  enabled: boolean
+
+}
+export interface GetWideContentStateMessage {
+
+  type: 'GET_WIDE_CONTENT_STATE'
+
+}
+
+export interface WideContentStateResponse {
+
+  type: 'WIDE_CONTENT_STATE'
+
+  enabled: boolean
+
+}
+export interface ToggleSidebarMessage {
+
+  type: 'TOGGLE_SIDEBAR'
+
+  enabled: boolean
+
+}
+
+export interface GetSidebarStateMessage {
+
+  type: 'GET_SIDEBAR_STATE'
+
+}
+
+export interface SidebarStateResponse {
+
+  type: 'SIDEBAR_STATE'
+
+  enabled: boolean
+
+}
+
+export interface ToggleDistractionsMessage {
+
+  type: 'TOGGLE_DISTRACTIONS'
+
+  enabled: boolean
+
+}
+
+export interface GetDistractionsStateMessage {
+
+  type: 'GET_DISTRACTIONS_STATE'
+
+}
+
+export interface DistractionsStateResponse {
+
+  type: 'DISTRACTIONS_STATE'
+
+  enabled: boolean
+
+}

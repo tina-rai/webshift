@@ -5,6 +5,22 @@ import type {
   TechnologyDiagnostics,
   ToggleAmoledMessage,
   GetAmoledStateMessage,
+  AmoledStateResponse,
+  ToggleDarkMessage,
+  GetDarkStateMessage,
+  DarkStateResponse,
+  SetFontMessage,
+  SetTextSizeMessage,
+  ToggleWideContentMessage,
+  GetWideContentStateMessage,
+WideContentStateResponse,
+ToggleSidebarMessage,
+GetSidebarStateMessage,
+SidebarStateResponse,
+ToggleDistractionsMessage,
+GetDistractionsStateMessage,
+DistractionsStateResponse,
+
 } from '../shared/messages'
 
 interface DetectionResult {
@@ -336,7 +352,10 @@ function analyzePage(): PageAnalysis {
     }
   }
   let amoledEnabled = false
-
+  let darkEnabled = false
+  let wideContentEnabled = false
+  let sidebarEnabled = false
+let distractionsEnabled = false
   function toggleAmoled(enabled: boolean) {
     const styleId = 'webshift-amoled'
   
@@ -360,6 +379,7 @@ function analyzePage(): PageAnalysis {
     style.textContent = `
     html {
       background: #000 !important;
+      color-scheme: dark !important;
     }
   
     body {
@@ -367,37 +387,34 @@ function analyzePage(): PageAnalysis {
       color: #fff !important;
     }
   
-    body,
-    main,
-    section,
-    article,
-    aside,
-    header,
-    footer,
-    nav {
+    body * {
+      border-color: #333 !important;
+    }
+  
+    body *:not(img):not(video):not(svg):not(canvas):not(iframe) {
       background-color: #000 !important;
       color: #fff !important;
     }
   
-    [role="dialog"],
-    [role="menu"],
-    [role="tooltip"],
-    [role="listbox"] {
-      background-color: #0a0a0a !important;
-      color: #fff !important;
-    }
-  
-    a {
+    body a {
       color: #66b3ff !important;
     }
   
-    button,
-    input,
-    textarea,
-    select {
+    body input,
+    body textarea,
+    body select,
+    body button {
       background-color: #111 !important;
       color: #fff !important;
-      border-color: #333 !important;
+      border-color: #444 !important;
+    }
+  
+    img,
+    video,
+    canvas,
+    iframe,
+    svg {
+      background-color: transparent !important;
     }
   
     ::placeholder {
@@ -409,12 +426,454 @@ function analyzePage(): PageAnalysis {
   
     amoledEnabled = true
   }
+  function toggleDark(enabled: boolean) {
+    const styleId = 'webshift-dark'
+  
+    const existingStyle = document.getElementById(styleId)
+  
+    if (!enabled) {
+      existingStyle?.remove()
+      darkEnabled = false
+      return
+    }
+  
+    if (existingStyle) {
+      darkEnabled = true
+      return
+    }
+  
+    const style = document.createElement('style')
+  
+    style.id = styleId
+  
+    style.textContent = `
+  html {
+    background: #121212 !important;
+    color-scheme: dark !important;
+  }
+
+  body {
+    background: #121212 !important;
+    color: #e8e8e8 !important;
+  }
+
+  body * {
+    border-color: #3a3a3a !important;
+  }
+
+  body *:not(img):not(video):not(svg):not(canvas):not(iframe) {
+    background-color: #1e1e1e !important;
+    color: #e8e8e8 !important;
+  }
+
+  body a {
+    color: #8ab4f8 !important;
+  }
+
+  body input,
+  body textarea,
+  body select,
+  body button {
+    background-color: #2a2a2a !important;
+    color: #f5f5f5 !important;
+    border-color: #555 !important;
+  }
+
+  img,
+  video,
+  canvas,
+  iframe,
+  svg {
+    background-color: transparent !important;
+  }
+
+  ::placeholder {
+    color: #999 !important;
+  }
+`
+  
+    document.head.appendChild(style)
+  
+    darkEnabled = true
+  }
+  function setFont(font: string) {
+    const styleId = 'webshift-font'
+  
+    let style = document.getElementById(styleId) as HTMLStyleElement | null
+  
+    if (!style) {
+      style = document.createElement('style')
+  
+      style.id = styleId
+  
+      document.head.appendChild(style)
+    }
+  
+    style.textContent = `
+      html,
+      body,
+      body * {
+        font-family: ${font} !important;
+      }
+    `
+  }
+  function setTextSize(size: number) {
+    const styleId = 'webshift-text-size'
+  
+    let style = document.getElementById(styleId) as HTMLStyleElement | null
+  
+    if (!style) {
+      style = document.createElement('style')
+  
+      style.id = styleId
+  
+      document.head.appendChild(style)
+    }
+  
+    style.textContent = `
+      html {
+        font-size: ${size}px !important;
+      }
+  
+      body {
+        font-size: ${size}px !important;
+      }
+    `
+  }
+  function toggleWideContent(enabled: boolean) {
+    const styleId = 'webshift-wide-content'
+    const targetClass = 'webshift-wide-target'
+  
+    const existingStyle = document.getElementById(styleId)
+  
+    document
+      .querySelectorAll(`.${targetClass}`)
+      .forEach((element) => {
+        element.classList.remove(targetClass)
+      })
+  
+    if (!enabled) {
+      existingStyle?.remove()
+      wideContentEnabled = false
+      return
+    }
+  
+    if (existingStyle) {
+      return
+    }
+  
+    const viewportWidth = window.innerWidth
+  
+    const candidates = Array.from(
+      document.querySelectorAll('main, article, section, div')
+    )
+  
+    let bestCandidate: HTMLElement | null = null
+    let bestScore = 0
+  
+    for (const element of candidates) {
+      const htmlElement = element as HTMLElement
+      const rect = htmlElement.getBoundingClientRect()
+  
+      if (
+        rect.width < 400 ||
+        rect.width > viewportWidth * 0.95 ||
+        rect.height < 200
+      ) {
+        continue
+      }
+  
+      const style = window.getComputedStyle(htmlElement)
+  
+      if (
+        style.display === 'none' ||
+        style.visibility === 'hidden'
+      ) {
+        continue
+      }
+  
+      const textLength =
+        htmlElement.innerText?.trim().length ?? 0
+  
+      if (textLength < 200) {
+        continue
+      }
+  
+      let score = 0
+  
+      // Prefer semantic content elements
+      const tagName = htmlElement.tagName.toLowerCase()
+  
+      if (tagName === 'main') {
+        score += 5
+      }
+  
+      if (tagName === 'article') {
+        score += 5
+      }
+  
+      // Prefer elements that contain headings
+      if (
+        htmlElement.querySelector(
+          'h1, h2, h3'
+        )
+      ) {
+        score += 3
+      }
+  
+      // Prefer content-rich elements
+      if (
+        htmlElement.querySelector(
+          'p'
+        )
+      ) {
+        score += 2
+      }
+  
+      // Prefer elements that are noticeably narrower
+      // than the viewport
+      const widthRatio = rect.width / viewportWidth
+  
+      if (widthRatio < 0.75) {
+        score += 4
+      } else if (widthRatio < 0.85) {
+        score += 2
+      }
+  
+      // Penalize tiny containers
+      if (rect.width < 500) {
+        score -= 2
+      }
+  
+      if (score > bestScore) {
+        bestScore = score
+        bestCandidate = htmlElement
+      }
+    }
+  
+    if (!bestCandidate) {
+      return
+    }
+  
+    bestCandidate.classList.add(targetClass)
+  
+    const style = document.createElement('style')
+  
+    style.id = styleId
+  
+    style.textContent = `
+      .${targetClass} {
+        width: 95vw !important;
+        max-width: 1400px !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+      }
+    `
+  
+    document.head.appendChild(style)
+    wideContentEnabled = true
+  }
+  function toggleSidebar(enabled: boolean) {
+    const styleId = 'webshift-hide-sidebar'
+    const targetClass = 'webshift-sidebar-hidden'
+  
+    const existingStyle = document.getElementById(styleId)
+  
+    document
+      .querySelectorAll(`.${targetClass}`)
+      .forEach((element) => {
+        element.classList.remove(targetClass)
+      })
+  
+    if (!enabled) {
+      existingStyle?.remove()
+      sidebarEnabled = false
+      return
+    }
+  
+    if (existingStyle) {
+      sidebarEnabled = true
+      return
+    }
+  
+    const viewportWidth = window.innerWidth
+  
+    const candidates = Array.from(
+      document.querySelectorAll(
+        'aside, nav, [role="complementary"], div, section'
+      )
+    )
+  
+    let bestCandidate: HTMLElement | null = null
+    let bestScore = 0
+  
+    for (const element of candidates) {
+      const htmlElement = element as HTMLElement
+      const rect = htmlElement.getBoundingClientRect()
+  
+      if (
+        rect.width < 120 ||
+        rect.width > viewportWidth * 0.4 ||
+        rect.height < 150
+      ) {
+        continue
+      }
+  
+      const style = window.getComputedStyle(htmlElement)
+  
+      if (
+        style.display === 'none' ||
+        style.visibility === 'hidden'
+      ) {
+        continue
+      }
+  
+      const textLength =
+        htmlElement.innerText?.trim().length ?? 0
+  
+      if (textLength < 50) {
+        continue
+      }
+  
+      let score = 0
+  
+      const tagName = htmlElement.tagName.toLowerCase()
+  
+      if (tagName === 'aside') {
+        score += 6
+      }
+  
+      if (tagName === 'nav') {
+        score += 4
+      }
+  
+      if (
+        htmlElement.getAttribute('role') === 'complementary'
+      ) {
+        score += 6
+      }
+  
+      const classAndId = (
+        `${htmlElement.className} ${htmlElement.id}`
+      ).toLowerCase()
+  
+      if (
+        classAndId.includes('sidebar') ||
+        classAndId.includes('side-bar')
+      ) {
+        score += 5
+      }
+  
+      if (
+        classAndId.includes('rightbar') ||
+        classAndId.includes('leftbar')
+      ) {
+        score += 4
+      }
+  
+      // Sidebars are usually relatively narrow
+      const widthRatio = rect.width / viewportWidth
+  
+      if (widthRatio < 0.3) {
+        score += 3
+      }
+  
+      // Sidebars commonly contain links
+      const links = htmlElement.querySelectorAll('a').length
+  
+      if (links >= 3) {
+        score += 2
+      }
+  
+      if (score > bestScore) {
+        bestScore = score
+        bestCandidate = htmlElement
+      }
+    }
+  
+    if (!bestCandidate || bestScore < 4) {
+      return
+    }
+  
+    bestCandidate.classList.add(targetClass)
+  
+    const style = document.createElement('style')
+  
+    style.id = styleId
+  
+    style.textContent = `
+      .${targetClass} {
+        display: none !important;
+      }
+    `
+  
+    document.head.appendChild(style)
+  
+    sidebarEnabled = true
+  }
+  function toggleDistractions(enabled: boolean) {
+    const styleId = 'webshift-hide-distractions'
+  
+    const existingStyle = document.getElementById(styleId)
+  
+    if (!enabled) {
+      existingStyle?.remove()
+      distractionsEnabled = false
+      return
+    }
+  
+    if (existingStyle) {
+      distractionsEnabled = true
+      return
+    }
+  
+    const style = document.createElement('style')
+  
+    style.id = styleId
+  
+    style.textContent = `
+      [class*="cookie"],
+      [id*="cookie"],
+      [class*="popup"],
+      [id*="popup"],
+      [class*="modal"],
+      [id*="modal"],
+      [class*="overlay"],
+      [id*="overlay"],
+      [class*="newsletter"],
+      [id*="newsletter"],
+      [class*="subscribe"],
+      [id*="subscribe"],
+      [class*="advertisement"],
+      [id*="advertisement"],
+      [class*="social-share"],
+      [class*="share-buttons"],
+      iframe[src*="doubleclick"],
+      iframe[src*="googlesyndication"] {
+        display: none !important;
+      }
+    `
+  
+    document.head.appendChild(style)
+  
+    distractionsEnabled = true
+  }
   chrome.runtime.onMessage.addListener(
     (
       message:
         | AnalyzePageMessage
         | ToggleAmoledMessage
-        | GetAmoledStateMessage,
+        | GetAmoledStateMessage
+        | ToggleDarkMessage
+        | GetDarkStateMessage
+        | SetFontMessage
+        | SetTextSizeMessage
+        | ToggleWideContentMessage
+        | GetWideContentStateMessage
+        | ToggleSidebarMessage
+        | GetSidebarStateMessage
+        | ToggleDistractionsMessage
+        | GetDistractionsStateMessage,
       _sender,
       sendResponse
     ) => {
@@ -435,10 +894,80 @@ function analyzePage(): PageAnalysis {
       }
   
       if (message.type === 'GET_AMOLED_STATE') {
-        sendResponse({
+        const response: AmoledStateResponse = {
           type: 'AMOLED_STATE',
           enabled: amoledEnabled,
-        })
+        }
+  
+        sendResponse(response)
+  
+        return
+      }
+  
+      if (message.type === 'TOGGLE_DARK') {
+        toggleDark(message.enabled)
+        return
+      }
+  
+      if (message.type === 'GET_DARK_STATE') {
+        const response: DarkStateResponse = {
+          type: 'DARK_STATE',
+          enabled: darkEnabled,
+        }
+  
+        sendResponse(response)
+  
+        return
+      }
+  
+      if (message.type === 'SET_FONT') {
+        setFont(message.font)
+        return
+      }
+  
+      if (message.type === 'SET_TEXT_SIZE') {
+        setTextSize(message.size)
+      }
+      if (message.type === 'TOGGLE_WIDE_CONTENT') {
+        toggleWideContent(message.enabled)
+      }
+      if (message.type === 'GET_WIDE_CONTENT_STATE') {
+        const response: WideContentStateResponse = {
+          type: 'WIDE_CONTENT_STATE',
+          enabled: wideContentEnabled,
+        }
+      
+        sendResponse(response)
+      
+        return
+      }
+      if (message.type === 'TOGGLE_SIDEBAR') {
+        toggleSidebar(message.enabled)
+        return
+      }
+      if (message.type === 'GET_SIDEBAR_STATE') {
+        const response: SidebarStateResponse = {
+          type: 'SIDEBAR_STATE',
+          enabled: sidebarEnabled,
+        }
+      
+        sendResponse(response)
+      
+        return
+      }
+      if (message.type === 'TOGGLE_DISTRACTIONS') {
+        toggleDistractions(message.enabled)
+        return
+      }
+      if (message.type === 'GET_DISTRACTIONS_STATE') {
+        const response: DistractionsStateResponse = {
+          type: 'DISTRACTIONS_STATE',
+          enabled: distractionsEnabled,
+        }
+      
+        sendResponse(response)
+      
+        return
       }
     }
   )

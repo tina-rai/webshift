@@ -1,12 +1,17 @@
 import { useState, useEffect } from 'react'
-import type { PageAnalysis,   AmoledStateResponse, AnalyzePageResponse,} from './shared/messages'
+import type { PageAnalysis,   AmoledStateResponse, AnalyzePageResponse,   DarkStateResponse,   WideContentStateResponse,  SidebarStateResponse,
+  DistractionsStateResponse,
+} from './shared/messages'
 
 function App() {
   const [analysis, setAnalysis] = useState<PageAnalysis | null>(null)
   const [loading, setLoading] = useState(false)
   const [amoledEnabled, setAmoledEnabled] = useState(false)
+  const [darkEnabled, setDarkEnabled] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
+  const [wideContentEnabled, setWideContentEnabled] = useState(false)
+  const [sidebarEnabled, setSidebarEnabled] = useState(false)
+const [distractionsEnabled, setDistractionsEnabled] = useState(false)
   const analyzePage = async () => {
     setLoading(true)
     setError(null)
@@ -61,9 +66,117 @@ function App() {
       )
     }
   }
+  const getDarkState = async () => {
+    try {
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      })
   
+      if (!tab.id) {
+        return
+      }
+  
+      const response = await chrome.tabs.sendMessage(
+        tab.id,
+        {
+          type: 'GET_DARK_STATE',
+        }
+      ) as DarkStateResponse
+  
+      setDarkEnabled(response.enabled)
+    } catch (error) {
+      console.error(
+        'WebShift dark state error:',
+        error
+      )
+    }
+  }
+  const getWideContentState = async () => {
+    try {
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      })
+  
+      if (!tab.id) {
+        return
+      }
+  
+      const response = await chrome.tabs.sendMessage(
+        tab.id,
+        {
+          type: 'GET_WIDE_CONTENT_STATE',
+        }
+      ) as WideContentStateResponse
+  
+      setWideContentEnabled(response.enabled)
+    } catch (error) {
+      console.error(
+        'WebShift wide content state error:',
+        error
+      )
+    }
+  }
+  const getSidebarState = async () => {
+    try {
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      })
+  
+      if (!tab.id) {
+        return
+      }
+  
+      const response = await chrome.tabs.sendMessage(
+        tab.id,
+        {
+          type: 'GET_SIDEBAR_STATE',
+        }
+      ) as SidebarStateResponse
+  
+      setSidebarEnabled(response.enabled)
+    } catch (error) {
+      console.error(
+        'WebShift sidebar state error:',
+        error
+      )
+    }
+  }
+  const getDistractionsState = async () => {
+    try {
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      })
+  
+      if (!tab.id) {
+        return
+      }
+  
+      const response = await chrome.tabs.sendMessage(
+        tab.id,
+        {
+          type: 'GET_DISTRACTIONS_STATE',
+        }
+      ) as DistractionsStateResponse
+  
+      setDistractionsEnabled(response.enabled)
+    } catch (error) {
+      console.error(
+        'WebShift distractions state error:',
+        error
+      )
+    }
+  }
   useEffect(() => {
     getAmoledState()
+    getDarkState()
+    getWideContentState()
+    getSidebarState()
+    getDistractionsState()
+
   }, [])
 
   return (
@@ -111,8 +224,264 @@ function App() {
   >
     {amoledEnabled ? 'Disable AMOLED' : 'Enable AMOLED'}
   </button>
-</div> 
+  <button
+  className="mt-2 rounded border px-3 py-2 text-sm"
+  onClick={async () => {
+    const enabled = !darkEnabled
 
+    setDarkEnabled(enabled)
+
+    try {
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      })
+
+      if (!tab.id) {
+        return
+      }
+
+      await chrome.tabs.sendMessage(tab.id, {
+        type: 'TOGGLE_DARK',
+        enabled,
+      })
+    } catch (error) {
+      console.error(
+        'WebShift dark mode error:',
+        error
+      )
+    }
+  }}
+>
+  {darkEnabled ? 'Disable Dark' : 'Enable Dark'}
+</button>
+<button
+  className="mt-2 rounded border px-3 py-2 text-sm"
+  onClick={async () => {
+    const enabled = !wideContentEnabled
+
+    setWideContentEnabled(enabled)
+
+    try {
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      })
+
+      if (!tab.id) {
+        return
+      }
+
+      await chrome.tabs.sendMessage(tab.id, {
+        type: 'TOGGLE_WIDE_CONTENT',
+        enabled,
+      })
+    } catch (error) {
+      console.error(
+        'WebShift wide content error:',
+        error
+      )
+    }
+  }}
+>
+  {wideContentEnabled
+    ? 'Disable Wide Content'
+    : 'Enable Wide Content'}
+</button>
+<div className="mt-4">
+  <label
+    htmlFor="font-select"
+    className="text-sm font-medium"
+  >
+    Font
+  </label>
+
+  <select
+    id="font-select"
+    className="mt-2 w-full rounded border px-3 py-2 text-sm"
+    defaultValue="system-ui"
+    onChange={async (event) => {
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      })
+
+      if (!tab.id) {
+        return
+      }
+
+      await chrome.tabs.sendMessage(tab.id, {
+        type: 'SET_FONT',
+        font: event.target.value,
+      })
+    }}
+  >
+    <option value="system-ui">
+      System
+    </option>
+
+    <option value="Inter">
+      Inter
+    </option>
+
+    <option value="Arial">
+      Arial
+    </option>
+
+    <option value="Georgia">
+      Georgia
+    </option>
+
+    <option value="monospace">
+      Monospace
+    </option>
+  </select>
+</div>
+<div className="mt-4">
+  <label
+    htmlFor="text-size"
+    className="text-sm font-medium"
+  >
+    Text size
+  </label>
+
+  <input
+    id="text-size"
+    type="range"
+    min="12"
+    max="24"
+    defaultValue="16"
+    className="mt-2 w-full"
+    onChange={async (event) => {
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      })
+
+      if (!tab.id) {
+        return
+      }
+
+      await chrome.tabs.sendMessage(tab.id, {
+        type: 'SET_TEXT_SIZE',
+        size: Number(event.target.value),
+      })
+    }}
+  />
+
+  <div className="flex justify-between text-xs text-gray-500">
+    <span>12px</span>
+    <span>24px</span>
+  </div>
+</div>
+</div> 
+<div className="mt-5">
+  <h2 className="font-semibold">
+    Layout
+  </h2>
+
+  <button
+    className="mt-2 w-full rounded border px-3 py-2 text-sm"
+    onClick={async () => {
+      const enabled = !wideContentEnabled
+
+      setWideContentEnabled(enabled)
+
+      try {
+        const [tab] = await chrome.tabs.query({
+          active: true,
+          currentWindow: true,
+        })
+
+        if (!tab.id) {
+          return
+        }
+
+        await chrome.tabs.sendMessage(tab.id, {
+          type: 'TOGGLE_WIDE_CONTENT',
+          enabled,
+        })
+      } catch (error) {
+        console.error(
+          'WebShift wide content error:',
+          error
+        )
+      }
+    }}
+  >
+    {wideContentEnabled
+      ? '↔ Disable Wide Content'
+      : '↔ Enable Wide Content'}
+  </button>
+
+  <button
+    className="mt-2 w-full rounded border px-3 py-2 text-sm"
+    onClick={async () => {
+      const enabled = !sidebarEnabled
+
+      setSidebarEnabled(enabled)
+
+      try {
+        const [tab] = await chrome.tabs.query({
+          active: true,
+          currentWindow: true,
+        })
+
+        if (!tab.id) {
+          return
+        }
+
+        await chrome.tabs.sendMessage(tab.id, {
+          type: 'TOGGLE_SIDEBAR',
+          enabled,
+        })
+      } catch (error) {
+        console.error(
+          'WebShift sidebar error:',
+          error
+        )
+      }
+    }}
+  >
+    {sidebarEnabled
+      ? ' Show Sidebar'
+      : ' Hide Sidebar'}
+  </button>
+
+  <button
+    className="mt-2 w-full rounded border px-3 py-2 text-sm"
+    onClick={async () => {
+      const enabled = !distractionsEnabled
+
+      setDistractionsEnabled(enabled)
+
+      try {
+        const [tab] = await chrome.tabs.query({
+          active: true,
+          currentWindow: true,
+        })
+
+        if (!tab.id) {
+          return
+        }
+
+        await chrome.tabs.sendMessage(tab.id, {
+          type: 'TOGGLE_DISTRACTIONS',
+          enabled,
+        })
+      } catch (error) {
+        console.error(
+          'WebShift distractions error:',
+          error
+        )
+      }
+    }}
+  >
+    {distractionsEnabled
+      ? ' Show Distractions'
+      : ' Hide Distractions'}
+  </button>
+</div>
       <button
         onClick={analyzePage}
         disabled={loading}
