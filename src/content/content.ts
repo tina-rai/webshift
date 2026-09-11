@@ -17,9 +17,9 @@ WideContentStateResponse,
 ToggleSidebarMessage,
 GetSidebarStateMessage,
 SidebarStateResponse,
-ToggleDistractionsMessage,
-GetDistractionsStateMessage,
-DistractionsStateResponse,
+ToggleAdsMessage,
+GetAdsStateMessage,
+AdsStateResponse,
 
 } from '../shared/messages'
 
@@ -355,8 +355,8 @@ function analyzePage(): PageAnalysis {
   let darkEnabled = false
   let wideContentEnabled = false
   let sidebarEnabled = false
-let distractionsEnabled = false
-  function toggleAmoled(enabled: boolean) {
+  let adsEnabled = false
+function toggleAmoled(enabled: boolean) {
     const styleId = 'webshift-amoled'
   
     const existingStyle = document.getElementById(styleId)
@@ -675,188 +675,219 @@ let distractionsEnabled = false
   }
   function toggleSidebar(enabled: boolean) {
     const styleId = 'webshift-hide-sidebar'
-    const targetClass = 'webshift-sidebar-hidden'
+    const className = 'webshift-sidebar-hidden'
   
     const existingStyle = document.getElementById(styleId)
   
-    document
-      .querySelectorAll(`.${targetClass}`)
-      .forEach((element) => {
-        element.classList.remove(targetClass)
-      })
-  
     if (!enabled) {
       existingStyle?.remove()
-      sidebarEnabled = false
+  
+      document
+        .querySelectorAll(`.${className}`)
+        .forEach((el) => el.classList.remove(className))
+  
       return
     }
   
-    if (existingStyle) {
-      sidebarEnabled = true
-      return
-    }
+    // Remove any previous target before detecting again
+    document
+      .querySelectorAll(`.${className}`)
+      .forEach((el) => el.classList.remove(className))
+  
+      const candidates = Array.from(
+        document.querySelectorAll(
+          'aside, nav, [role="complementary"], [role="navigation"]'
+        )
+      )
   
     const viewportWidth = window.innerWidth
-  
-    const candidates = Array.from(
-      document.querySelectorAll(
-        'aside, nav, [role="complementary"], div, section'
-      )
-    )
+    const viewportHeight = window.innerHeight
   
     let bestCandidate: HTMLElement | null = null
     let bestScore = 0
   
     for (const element of candidates) {
-      const htmlElement = element as HTMLElement
-      const rect = htmlElement.getBoundingClientRect()
+      const el = element as HTMLElement
   
-      if (
-        rect.width < 120 ||
-        rect.width > viewportWidth * 0.4 ||
-        rect.height < 150
-      ) {
-        continue
-      }
+      if (!el.offsetParent) continue
+
+      const rect = el.getBoundingClientRect()
   
-      const style = window.getComputedStyle(htmlElement)
+      const width = rect.width
+      const height = rect.height
   
-      if (
-        style.display === 'none' ||
-        style.visibility === 'hidden'
-      ) {
-        continue
-      }
+      if (width < 120 || width > viewportWidth * 0.4) continue
+if (height < 180) continue
   
-      const textLength =
-        htmlElement.innerText?.trim().length ?? 0
+      const text = el.innerText?.trim() || ''
+      const links = el.querySelectorAll('a').length
+      const lists = el.querySelectorAll('ul, ol').length
+
+      console.log(
+        'WebShift sidebar candidate:',
+        {
+          tag: el.tagName,
+          id: el.id,
+          className: el.className,
+          width: Math.round(rect.width),
+          height: Math.round(rect.height),
+          left: Math.round(rect.left),
+          links,
+          lists
+        }
+      )
   
-      if (textLength < 50) {
-        continue
-      }
-  
+      if (text.length < 50 && links < 3 && lists < 1) continue  
+      
       let score = 0
   
-      const tagName = htmlElement.tagName.toLowerCase()
+      const tag = el.tagName.toLowerCase()
+      const id = el.id.toLowerCase()
+      const className = el.className.toString().toLowerCase()
   
-      if (tagName === 'aside') {
+      // Semantic clues
+      if (tag === 'aside') score += 6
+      if (tag === 'nav') score += 4
+  
+      if (
+        el.getAttribute('role') === 'complementary'
+      ) {
         score += 6
       }
   
-      if (tagName === 'nav') {
+      if (
+        el.getAttribute('role') === 'navigation'
+      ) {
         score += 4
       }
   
+      // Naming clues
       if (
-        htmlElement.getAttribute('role') === 'complementary'
-      ) {
-        score += 6
-      }
-  
-      const classAndId = (
-        `${htmlElement.className} ${htmlElement.id}`
-      ).toLowerCase()
-  
-      if (
-        classAndId.includes('sidebar') ||
-        classAndId.includes('side-bar')
+        id.includes('sidebar') ||
+        className.includes('sidebar')
       ) {
         score += 5
       }
   
       if (
-        classAndId.includes('rightbar') ||
-        classAndId.includes('leftbar')
+        id.includes('side-nav') ||
+        className.includes('side-nav') ||
+        id.includes('sidenav') ||
+        className.includes('sidenav')
       ) {
-        score += 4
+        score += 5
       }
   
-      // Sidebars are usually relatively narrow
-      const widthRatio = rect.width / viewportWidth
+      // Link density
+      if (links >= 5) score += 2
+      if (links >= 10) score += 2
+
+      // List structure
+      if (lists >= 1) score += 2
+      if (lists >= 3) score += 2
   
-      if (widthRatio < 0.3) {
+      // Narrow = more sidebar-like
+      const widthRatio = width / viewportWidth
+  
+      if (widthRatio < 0.3) score += 3
+      if (widthRatio < 0.2) score += 2
+  
+      // Position clues
+      const distanceFromLeft = rect.left
+      const distanceFromRight = viewportWidth - rect.right
+  
+      const nearLeft = distanceFromLeft < viewportWidth * 0.25
+      const nearRight = distanceFromRight < viewportWidth * 0.25
+  
+      if (nearLeft || nearRight) {
         score += 3
       }
   
-      // Sidebars commonly contain links
-      const links = htmlElement.querySelectorAll('a').length
+      // Tall side regions are more likely to be navigation/sidebar
+      if (height > viewportHeight * 0.5) score += 2
+      if (height > viewportHeight * 0.8) score += 2
   
-      if (links >= 3) {
-        score += 2
+      // Prefer elements that actually sit beside the page,
+      // rather than small panels inside the article.
+      if (rect.top < viewportHeight * 0.3) {
+        score += 1
       }
   
       if (score > bestScore) {
         bestScore = score
-        bestCandidate = htmlElement
+        bestCandidate = el
       }
     }
-  
-    if (!bestCandidate || bestScore < 4) {
+    console.log(
+      'WebShift sidebar winner:',
+      bestCandidate,
+      'score:',
+      bestScore
+    )
+    if (!bestCandidate || bestScore < 7) {
       return
     }
+    
+    bestCandidate.classList.add(className)
+    let style = document.getElementById(styleId) as HTMLStyleElement | null
   
-    bestCandidate.classList.add(targetClass)
-  
-    const style = document.createElement('style')
-  
-    style.id = styleId
+    if (!style) {
+      style = document.createElement('style')
+      style.id = styleId
+      document.head.appendChild(style)
+    }
   
     style.textContent = `
-      .${targetClass} {
+      .${className} {
         display: none !important;
       }
     `
-  
-    document.head.appendChild(style)
-  
-    sidebarEnabled = true
   }
-  function toggleDistractions(enabled: boolean) {
-    const styleId = 'webshift-hide-distractions'
+  function toggleAds(enabled: boolean) {
+    const styleId = 'webshift-hide-ads'
   
     const existingStyle = document.getElementById(styleId)
   
     if (!enabled) {
       existingStyle?.remove()
-      distractionsEnabled = false
+      adsEnabled = false
       return
     }
   
     if (existingStyle) {
-      distractionsEnabled = true
+      adsEnabled = true
       return
     }
+  
+    const adSelectors = [
+      '[class*="ad-"]',
+      '[class*="-ad"]',
+      '[class*="ads-"]',
+      '[class*="-ads"]',
+      '[class*="advert"]',
+      '[id*="advert"]',
+      '[class*="sponsor"]',
+      '[id*="sponsor"]',
+      '[class*="promoted"]',
+      '[id*="promoted"]',
+      'iframe[src*="doubleclick"]',
+      'iframe[src*="googlesyndication"]',
+      'iframe[src*="adservice"]',
+    ]
   
     const style = document.createElement('style')
   
     style.id = styleId
   
     style.textContent = `
-      [class*="cookie"],
-      [id*="cookie"],
-      [class*="popup"],
-      [id*="popup"],
-      [class*="modal"],
-      [id*="modal"],
-      [class*="overlay"],
-      [id*="overlay"],
-      [class*="newsletter"],
-      [id*="newsletter"],
-      [class*="subscribe"],
-      [id*="subscribe"],
-      [class*="advertisement"],
-      [id*="advertisement"],
-      [class*="social-share"],
-      [class*="share-buttons"],
-      iframe[src*="doubleclick"],
-      iframe[src*="googlesyndication"] {
+      ${adSelectors.join(',\n')} {
         display: none !important;
       }
     `
   
     document.head.appendChild(style)
   
-    distractionsEnabled = true
+    adsEnabled = true
   }
   chrome.runtime.onMessage.addListener(
     (
@@ -872,8 +903,8 @@ let distractionsEnabled = false
         | GetWideContentStateMessage
         | ToggleSidebarMessage
         | GetSidebarStateMessage
-        | ToggleDistractionsMessage
-        | GetDistractionsStateMessage,
+        | ToggleAdsMessage
+        | GetAdsStateMessage,
       _sender,
       sendResponse
     ) => {
@@ -955,19 +986,23 @@ let distractionsEnabled = false
       
         return
       }
-      if (message.type === 'TOGGLE_DISTRACTIONS') {
-        toggleDistractions(message.enabled)
+      if (message.type === 'TOGGLE_ADS') {
+        toggleAds(message.enabled)
         return
       }
-      if (message.type === 'GET_DISTRACTIONS_STATE') {
-        const response: DistractionsStateResponse = {
-          type: 'DISTRACTIONS_STATE',
-          enabled: distractionsEnabled,
+      
+      if (message.type === 'GET_ADS_STATE') {
+        const response: AdsStateResponse = {
+          type: 'ADS_STATE',
+          enabled: adsEnabled,
         }
       
         sendResponse(response)
       
         return
       }
-    }
+      
+    
+      }
+    
   )

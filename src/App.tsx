@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { PageAnalysis,   AmoledStateResponse, AnalyzePageResponse,   DarkStateResponse,   WideContentStateResponse,  SidebarStateResponse,
-  DistractionsStateResponse,
-} from './shared/messages'
+  AdsStateResponse,} from './shared/messages'
 
 function App() {
   const [analysis, setAnalysis] = useState<PageAnalysis | null>(null)
@@ -11,8 +10,8 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const [wideContentEnabled, setWideContentEnabled] = useState(false)
   const [sidebarEnabled, setSidebarEnabled] = useState(false)
-const [distractionsEnabled, setDistractionsEnabled] = useState(false)
-  const analyzePage = async () => {
+  const [adsEnabled, setAdsEnabled] = useState(false) 
+ const analyzePage = async () => {
     setLoading(true)
     setError(null)
   
@@ -144,7 +143,7 @@ const [distractionsEnabled, setDistractionsEnabled] = useState(false)
       )
     }
   }
-  const getDistractionsState = async () => {
+  const getAdsState = async () => {
     try {
       const [tab] = await chrome.tabs.query({
         active: true,
@@ -158,14 +157,14 @@ const [distractionsEnabled, setDistractionsEnabled] = useState(false)
       const response = await chrome.tabs.sendMessage(
         tab.id,
         {
-          type: 'GET_DISTRACTIONS_STATE',
+          type: 'GET_ADS_STATE',
         }
-      ) as DistractionsStateResponse
+      ) as AdsStateResponse
   
-      setDistractionsEnabled(response.enabled)
+      setAdsEnabled(response.enabled)
     } catch (error) {
       console.error(
-        'WebShift distractions state error:',
+        'WebShift ads state error:',
         error
       )
     }
@@ -175,7 +174,7 @@ const [distractionsEnabled, setDistractionsEnabled] = useState(false)
     getDarkState()
     getWideContentState()
     getSidebarState()
-    getDistractionsState()
+    getAdsState()
 
   }, [])
 
@@ -410,8 +409,8 @@ const [distractionsEnabled, setDistractionsEnabled] = useState(false)
     }}
   >
     {wideContentEnabled
-      ? '↔ Disable Wide Content'
-      : '↔ Enable Wide Content'}
+      ? ' Disable Wide Content'
+      : ' Enable Wide Content'}
   </button>
 
   <button
@@ -449,38 +448,38 @@ const [distractionsEnabled, setDistractionsEnabled] = useState(false)
   </button>
 
   <button
-    className="mt-2 w-full rounded border px-3 py-2 text-sm"
-    onClick={async () => {
-      const enabled = !distractionsEnabled
+  className="mt-2 w-full rounded border px-3 py-2 text-sm"
+  onClick={async () => {
+    const enabled = !adsEnabled
 
-      setDistractionsEnabled(enabled)
+    setAdsEnabled(enabled)
 
-      try {
-        const [tab] = await chrome.tabs.query({
-          active: true,
-          currentWindow: true,
-        })
+    try {
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      })
 
-        if (!tab.id) {
-          return
-        }
-
-        await chrome.tabs.sendMessage(tab.id, {
-          type: 'TOGGLE_DISTRACTIONS',
-          enabled,
-        })
-      } catch (error) {
-        console.error(
-          'WebShift distractions error:',
-          error
-        )
+      if (!tab.id) {
+        return
       }
-    }}
-  >
-    {distractionsEnabled
-      ? ' Show Distractions'
-      : ' Hide Distractions'}
-  </button>
+
+      await chrome.tabs.sendMessage(tab.id, {
+        type: 'TOGGLE_ADS',
+        enabled,
+      })
+    } catch (error) {
+      console.error(
+        'WebShift ads error:',
+        error
+      )
+    }
+  }}
+>
+  {adsEnabled
+    ? ' Show Ads'
+    : ' Hide Ads'}
+</button>
 </div>
       <button
         onClick={analyzePage}

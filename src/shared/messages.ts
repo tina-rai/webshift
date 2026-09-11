@@ -121,24 +121,16 @@ export interface SidebarStateResponse {
 
 }
 
-export interface ToggleDistractionsMessage {
-
-  type: 'TOGGLE_DISTRACTIONS'
-
+export interface ToggleAdsMessage {
+  type: 'TOGGLE_ADS'
   enabled: boolean
-
 }
 
-export interface GetDistractionsStateMessage {
-
-  type: 'GET_DISTRACTIONS_STATE'
-
+export interface GetAdsStateMessage {
+  type: 'GET_ADS_STATE'
 }
 
-export interface DistractionsStateResponse {
-
-  type: 'DISTRACTIONS_STATE'
-
+export interface AdsStateResponse {
+  type: 'ADS_STATE'
   enabled: boolean
-
 }
