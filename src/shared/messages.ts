@@ -134,3 +134,21 @@ export interface AdsStateResponse {
   type: 'ADS_STATE'
   enabled: boolean
 }
+export interface WebShiftSettings {
+  amoledEnabled: boolean
+  darkEnabled: boolean
+  wideContentEnabled: boolean
+  sidebarHidden: boolean
+  adsHidden: boolean
+  font: string
+  textSize: number
+}
+export const DEFAULT_SETTINGS: WebShiftSettings = {
+  amoledEnabled: false,
+  darkEnabled: false,
+  wideContentEnabled: false,
+  sidebarHidden: false,
+  adsHidden: false,
+  font: 'system',
+  textSize: 16
+}

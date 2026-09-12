@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react'
-import type { PageAnalysis,   AmoledStateResponse, AnalyzePageResponse,   DarkStateResponse,   WideContentStateResponse,  SidebarStateResponse,
-  AdsStateResponse,} from './shared/messages'
+import type {
+  PageAnalysis,
+  AnalyzePageResponse,
+  WebShiftSettings,
+    
+} from './shared/messages'
+
+import { DEFAULT_SETTINGS } from './shared/messages'
 
 function App() {
   const [analysis, setAnalysis] = useState<PageAnalysis | null>(null)
@@ -11,6 +17,36 @@ function App() {
   const [wideContentEnabled, setWideContentEnabled] = useState(false)
   const [sidebarEnabled, setSidebarEnabled] = useState(false)
   const [adsEnabled, setAdsEnabled] = useState(false) 
+  
+
+
+  // Load saved settings when popup opens
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const stored = await chrome.storage.sync.get({
+          amoledEnabled: DEFAULT_SETTINGS.amoledEnabled,
+          darkEnabled: DEFAULT_SETTINGS.darkEnabled,
+          wideContentEnabled: DEFAULT_SETTINGS.wideContentEnabled,
+          sidebarHidden: DEFAULT_SETTINGS.sidebarHidden,
+        })
+  
+        const settings = stored as unknown as WebShiftSettings
+  
+        setAmoledEnabled(settings.amoledEnabled)
+        setDarkEnabled(settings.darkEnabled)
+        setWideContentEnabled(settings.wideContentEnabled)
+        setSidebarEnabled(settings.sidebarHidden)
+      } catch (error) {
+        console.error(
+          'WebShift settings load error:',
+          error
+        )
+      }
+    }
+  
+    loadSettings()
+  }, [])
  const analyzePage = async () => {
     setLoading(true)
     setError(null)
@@ -39,145 +75,7 @@ function App() {
       setLoading(false)
     }
   }
-  const getAmoledState = async () => {
-    try {
-      const [tab] = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      })
   
-      if (!tab.id) {
-        return
-      }
-  
-      const response = await chrome.tabs.sendMessage(
-        tab.id,
-        {
-          type: 'GET_AMOLED_STATE',
-        }
-      ) as AmoledStateResponse
-  
-      setAmoledEnabled(response.enabled)
-    } catch (error) {
-      console.error(
-        'WebShift AMOLED state error:',
-        error
-      )
-    }
-  }
-  const getDarkState = async () => {
-    try {
-      const [tab] = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      })
-  
-      if (!tab.id) {
-        return
-      }
-  
-      const response = await chrome.tabs.sendMessage(
-        tab.id,
-        {
-          type: 'GET_DARK_STATE',
-        }
-      ) as DarkStateResponse
-  
-      setDarkEnabled(response.enabled)
-    } catch (error) {
-      console.error(
-        'WebShift dark state error:',
-        error
-      )
-    }
-  }
-  const getWideContentState = async () => {
-    try {
-      const [tab] = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      })
-  
-      if (!tab.id) {
-        return
-      }
-  
-      const response = await chrome.tabs.sendMessage(
-        tab.id,
-        {
-          type: 'GET_WIDE_CONTENT_STATE',
-        }
-      ) as WideContentStateResponse
-  
-      setWideContentEnabled(response.enabled)
-    } catch (error) {
-      console.error(
-        'WebShift wide content state error:',
-        error
-      )
-    }
-  }
-  const getSidebarState = async () => {
-    try {
-      const [tab] = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      })
-  
-      if (!tab.id) {
-        return
-      }
-  
-      const response = await chrome.tabs.sendMessage(
-        tab.id,
-        {
-          type: 'GET_SIDEBAR_STATE',
-        }
-      ) as SidebarStateResponse
-  
-      setSidebarEnabled(response.enabled)
-    } catch (error) {
-      console.error(
-        'WebShift sidebar state error:',
-        error
-      )
-    }
-  }
-  const getAdsState = async () => {
-    try {
-      const [tab] = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      })
-  
-      if (!tab.id) {
-        return
-      }
-  
-      const response = await chrome.tabs.sendMessage(
-        tab.id,
-        {
-          type: 'GET_ADS_STATE',
-        }
-      ) as AdsStateResponse
-  
-      setAdsEnabled(response.enabled)
-    } catch (error) {
-      console.error(
-        'WebShift ads state error:',
-        error
-      )
-    }
-  }
-  useEffect(() => {
-    getAmoledState()
-    getDarkState()
-    getWideContentState()
-    getSidebarState()
-    getAdsState()
-
-  }, [])
-
   return (
     <main className="w-80 p-5">
       <h1 className="text-2xl font-bold">
@@ -198,6 +96,9 @@ function App() {
       const enabled = !amoledEnabled
 
       setAmoledEnabled(enabled)
+      await chrome.storage.sync.set({
+        amoledEnabled: enabled,
+      })
 
       try {
         const [tab] = await chrome.tabs.query({
@@ -229,6 +130,9 @@ function App() {
     const enabled = !darkEnabled
 
     setDarkEnabled(enabled)
+    await chrome.storage.sync.set({
+      darkEnabled: enabled,
+    })
 
     try {
       const [tab] = await chrome.tabs.query({
@@ -254,39 +158,7 @@ function App() {
 >
   {darkEnabled ? 'Disable Dark' : 'Enable Dark'}
 </button>
-<button
-  className="mt-2 rounded border px-3 py-2 text-sm"
-  onClick={async () => {
-    const enabled = !wideContentEnabled
 
-    setWideContentEnabled(enabled)
-
-    try {
-      const [tab] = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      })
-
-      if (!tab.id) {
-        return
-      }
-
-      await chrome.tabs.sendMessage(tab.id, {
-        type: 'TOGGLE_WIDE_CONTENT',
-        enabled,
-      })
-    } catch (error) {
-      console.error(
-        'WebShift wide content error:',
-        error
-      )
-    }
-  }}
->
-  {wideContentEnabled
-    ? 'Disable Wide Content'
-    : 'Enable Wide Content'}
-</button>
 <div className="mt-4">
   <label
     htmlFor="font-select"
@@ -385,6 +257,9 @@ function App() {
       const enabled = !wideContentEnabled
 
       setWideContentEnabled(enabled)
+      await chrome.storage.sync.set({
+        wideContentEnabled: enabled,
+      })
 
       try {
         const [tab] = await chrome.tabs.query({
@@ -419,6 +294,9 @@ function App() {
       const enabled = !sidebarEnabled
 
       setSidebarEnabled(enabled)
+      await chrome.storage.sync.set({
+        sidebarHidden: enabled,
+      })
 
       try {
         const [tab] = await chrome.tabs.query({

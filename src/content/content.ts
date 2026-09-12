@@ -20,6 +20,7 @@ SidebarStateResponse,
 ToggleAdsMessage,
 GetAdsStateMessage,
 AdsStateResponse,
+WebShiftSettings,
 
 } from '../shared/messages'
 
@@ -559,6 +560,7 @@ function toggleAmoled(enabled: boolean) {
     }
   
     if (existingStyle) {
+      wideContentEnabled = true
       return
     }
   
@@ -889,6 +891,27 @@ if (height < 180) continue
   
     adsEnabled = true
   }
+  chrome.storage.sync
+  .get({
+    amoledEnabled: false,
+    darkEnabled: false,
+    wideContentEnabled: false,
+    sidebarHidden: false,
+  })
+  .then((stored) => {
+    const settings = stored as unknown as WebShiftSettings
+
+    toggleAmoled(settings.amoledEnabled)
+    toggleDark(settings.darkEnabled)
+    toggleWideContent(settings.wideContentEnabled)
+    toggleSidebar(settings.sidebarHidden)
+  })
+  .catch((error) => {
+    console.error(
+      'WebShift settings load error:',
+      error
+    )
+  })
   chrome.runtime.onMessage.addListener(
     (
       message:

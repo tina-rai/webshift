@@ -3,6 +3,9 @@
   "name": "WebShift",
   "version": "0.1.0",
   "description": "Understand and transform the web.",
+  "permissions": [
+    "storage"
+  ],
   "action": {
     "default_popup": "index.html"
   },
