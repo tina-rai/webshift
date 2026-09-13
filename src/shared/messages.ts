@@ -25,16 +25,20 @@ export interface PageAnalysis {
   metaFrameworkConfidence: string
   metaFrameworkEvidence: string[]
 
+  platform: string
+  platformConfidence: string
+  platformEvidence: string[]
+
   headings: number
   buttons: number
   forms: number
   inputs: number
+
   externalLinks: number
   imagesWithoutAlt: number
 
   diagnostics: TechnologyDiagnostics
 }
-
 export interface AnalyzePageMessage {
   type: 'ANALYZE_PAGE'
 }

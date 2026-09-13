@@ -29,103 +29,353 @@ interface DetectionResult {
   confidence: string
   evidence: string[]
 }
-
 function detectFramework(): DetectionResult {
-  const scores = {
-    React: 0,
-    Angular: 0,
-    Vue: 0,
-    Svelte: 0,
+  const technologies = {
+    React: { score: 0, evidence: [] as string[] },
+    Vue: { score: 0, evidence: [] as string[] },
+    Angular: { score: 0, evidence: [] as string[] },
+    Svelte: { score: 0, evidence: [] as string[] },
+    Solid: { score: 0, evidence: [] as string[] },
+    Preact: { score: 0, evidence: [] as string[] },
+    'Alpine.js': { score: 0, evidence: [] as string[] },
+    Lit: { score: 0, evidence: [] as string[] },
+    Ember: { score: 0, evidence: [] as string[] },
+    jQuery: { score: 0, evidence: [] as string[] },
   }
 
-  const evidence = {
-    React: [] as string[],
-    Angular: [] as string[],
-    Vue: [] as string[],
-    Svelte: [] as string[],
+  const addEvidence = (
+    framework: keyof typeof technologies,
+    score: number,
+    message: string
+  ) => {
+    technologies[framework].score += score
+    technologies[framework].evidence.push(message)
   }
 
-  // React DOM fingerprints
-  const reactElements = Array.from(document.querySelectorAll('*')).filter(
-    (element) =>
-      Object.keys(element).some(
-        (key) =>
-          key.startsWith('__reactFiber$') ||
-          key.startsWith('__reactProps$')
-      )
+  const elements = Array.from(document.querySelectorAll('*'))
+
+  /*
+   * --------------------------------------------------
+   * React
+   * --------------------------------------------------
+   */
+
+  const reactInternalElements = elements.filter((element) =>
+    Object.keys(element).some(
+      (key) =>
+        key.startsWith('__reactFiber$') ||
+        key.startsWith('__reactProps$')
+    )
   )
 
-  if (reactElements.length > 0) {
-    scores.React += 3
-    evidence.React.push('React internal DOM properties detected')
+  if (reactInternalElements.length > 0) {
+    addEvidence(
+      'React',
+      4,
+      'React internal DOM properties detected'
+    )
   }
 
   if (document.querySelector('[data-reactroot]')) {
-    scores.React += 3
-    evidence.React.push('React root marker detected')
-  }
-  if (document.querySelector('[data-react-profiling]')) {
-    scores.React += 3
-    evidence.React.push('React profiling attribute detected')
+    addEvidence(
+      'React',
+      3,
+      'React root marker detected'
+    )
   }
 
-  // Angular fingerprints
-  if (document.querySelector('[ng-version]')) {
-    scores.Angular += 3
-    evidence.Angular.push('Angular version marker detected')
+  if (document.querySelector('[data-react-profiling]')) {
+    addEvidence(
+      'React',
+      3,
+      'React profiling attribute detected'
+    )
   }
+
+  /*
+   * --------------------------------------------------
+   * Vue
+   * --------------------------------------------------
+   */
+
+  if (document.querySelector('[data-v-app]')) {
+    addEvidence(
+      'Vue',
+      4,
+      'Vue application marker detected'
+    )
+  }
+
+  const vueInternalElements = elements.filter((element) =>
+    Object.keys(element).some((key) =>
+      key.startsWith('__vue')
+    )
+  )
+
+  if (vueInternalElements.length > 0) {
+    addEvidence(
+      'Vue',
+      4,
+      'Vue internal DOM property detected'
+    )
+  }
+
+  const vueGeneratedAttributes = elements.some((element) =>
+    Array.from(element.attributes).some((attribute) =>
+      attribute.name.startsWith('data-v-')
+    )
+  )
+
+  if (vueGeneratedAttributes) {
+    addEvidence(
+      'Vue',
+      2,
+      'Vue-generated data attribute detected'
+    )
+  }
+
+  /*
+   * --------------------------------------------------
+   * Angular
+   * --------------------------------------------------
+   */
+
+  if (document.querySelector('[ng-version]')) {
+    addEvidence(
+      'Angular',
+      4,
+      'Angular version marker detected'
+    )
+  }
+
+  const angularAttributes = elements.some((element) =>
+    Array.from(element.attributes).some(
+      (attribute) =>
+        attribute.name.startsWith('_ng') ||
+        attribute.name.startsWith('ng-')
+    )
+  )
+
+  if (angularAttributes) {
+    addEvidence(
+      'Angular',
+      3,
+      'Angular DOM attributes detected'
+    )
+  }
+
+  /*
+   * --------------------------------------------------
+   * Svelte
+   * --------------------------------------------------
+   */
+
+  if (document.querySelector('[class*="svelte-"]')) {
+    addEvidence(
+      'Svelte',
+      3,
+      'Svelte-generated class detected'
+    )
+  }
+
+  /*
+   * --------------------------------------------------
+   * Solid
+   * --------------------------------------------------
+   */
+
+  const solidMarkers = elements.some((element) =>
+    Object.keys(element).some(
+      (key) =>
+        key.startsWith('_$') ||
+        key.startsWith('__solid')
+    )
+  )
+
+  if (solidMarkers) {
+    addEvidence(
+      'Solid',
+      4,
+      'Solid.js internal DOM markers detected'
+    )
+  }
+
+  /*
+   * --------------------------------------------------
+   * Preact
+   * --------------------------------------------------
+   */
+
+  const preactMarkers = elements.some((element) =>
+    Object.keys(element).some(
+      (key) =>
+        key.startsWith('__k') ||
+        key.startsWith('__v')
+    )
+  )
+
+  if (preactMarkers) {
+    addEvidence(
+      'Preact',
+      3,
+      'Preact internal DOM properties detected'
+    )
+  }
+
+  /*
+   * --------------------------------------------------
+   * Alpine.js
+   * --------------------------------------------------
+   */
+
+  const alpineAttributes = elements.some((element) =>
+    Array.from(element.attributes).some((attribute) => {
+      const name = attribute.name.toLowerCase()
+
+      return (
+        name.startsWith('x-') ||
+        name.startsWith('x:')
+      )
+    })
+  )
+
+  if (alpineAttributes) {
+    addEvidence(
+      'Alpine.js',
+      3,
+      'Alpine.js directives detected'
+    )
+  }
+
+  /*
+   * --------------------------------------------------
+   * Lit
+   * --------------------------------------------------
+   */
+
+  const customElements = Array.from(
+    document.querySelectorAll('*')
+  ).some((element) =>
+    element.tagName.includes('-')
+  )
+
+  if (customElements) {
+    addEvidence(
+      'Lit',
+      1,
+      'Custom elements detected'
+    )
+  }
+
+  /*
+   * --------------------------------------------------
+   * Ember
+   * --------------------------------------------------
+   */
 
   if (
-    document.querySelector('[_nghost]') ||
-    document.querySelector('[_ngcontent]')
+    document.querySelector(
+      '[id^="ember"], [class*="ember"]'
+    )
   ) {
-    scores.Angular += 2
-    evidence.Angular.push('Angular DOM attributes detected')
+    addEvidence(
+      'Ember',
+      2,
+      'Ember-related DOM markers detected'
+    )
   }
 
-// Vue fingerprints
-if (document.querySelector('[data-v-app]')) {
-  scores.Vue += 3
-  evidence.Vue.push('Vue application marker detected')
-}
+  /*
+   * --------------------------------------------------
+   * jQuery
+   * --------------------------------------------------
+   */
 
-if (
-  Array.from(document.querySelectorAll('*')).some((element) =>
-    Object.keys(element).some((key) => key.startsWith('__vue'))
-  )
-) {
-  scores.Vue += 3
-  evidence.Vue.push('Vue internal DOM property detected')
-}
-const hasVueGeneratedAttribute = Array.from(
-  document.querySelectorAll('*')
-).some((element) =>
-  Array.from(element.attributes).some((attribute) =>
-    attribute.name.startsWith('data-v-')
-  )
-)
-
-if (hasVueGeneratedAttribute) {
-  scores.Vue += 2
-  evidence.Vue.push('Vue-generated data attribute detected')
-}
-
-
-  // Svelte fingerprints
-  const svelteElement = document.querySelector('[class*="svelte-"]')
-
-  if (svelteElement) {
-    scores.Svelte += 2
-    evidence.Svelte.push('Svelte-generated class detected')
+  const globalWindow = window as unknown as {
+    jQuery?: unknown
+    $?: unknown
   }
 
-  const detectedFramework = Object.entries(scores).sort(
-    ([, scoreA], [, scoreB]) => scoreB - scoreA
-  )[0]
+  if (globalWindow.jQuery) {
+    addEvidence(
+      'jQuery',
+      5,
+      'jQuery global object detected'
+    )
+  }
 
-  const [name, score] = detectedFramework
+  /*
+   * --------------------------------------------------
+   * Script/resource signals
+   * --------------------------------------------------
+   */
 
-  if (score === 0) {
+  const scripts = Array.from(document.scripts)
+    .map((script) => script.src.toLowerCase())
+    .filter(Boolean)
+
+  const scriptText = scripts.join(' ')
+
+  if (scriptText.includes('react')) {
+    addEvidence(
+      'React',
+      2,
+      'React-related script resource detected'
+    )
+  }
+
+  if (scriptText.includes('vue')) {
+    addEvidence(
+      'Vue',
+      2,
+      'Vue-related script resource detected'
+    )
+  }
+
+  if (scriptText.includes('angular')) {
+    addEvidence(
+      'Angular',
+      2,
+      'Angular-related script resource detected'
+    )
+  }
+
+  if (scriptText.includes('svelte')) {
+    addEvidence(
+      'Svelte',
+      2,
+      'Svelte-related script resource detected'
+    )
+  }
+
+  if (scriptText.includes('preact')) {
+    addEvidence(
+      'Preact',
+      2,
+      'Preact-related script resource detected'
+    )
+  }
+
+  if (scriptText.includes('solid')) {
+    addEvidence(
+      'Solid',
+      2,
+      'Solid-related script resource detected'
+    )
+  }
+
+  /*
+   * --------------------------------------------------
+   * Select strongest framework
+   * --------------------------------------------------
+   */
+
+  const detected = Object.entries(technologies)
+    .sort(([, a], [, b]) => b.score - a.score)[0]
+
+  const [name, result] = detected
+
+  if (result.score < 3) {
     return {
       name: 'Not detected',
       confidence: 'None',
@@ -134,58 +384,370 @@ if (hasVueGeneratedAttribute) {
   }
 
   const confidence =
-    score >= 5
+    result.score >= 7
       ? 'High'
-      : score >= 3
+      : result.score >= 4
         ? 'Medium'
         : 'Low'
 
   return {
     name,
     confidence,
-    evidence: evidence[name as keyof typeof evidence],
+    evidence: result.evidence,
+  }
+}
+function detectPlatform(): DetectionResult {
+  const platforms = {
+    MediaWiki: { score: 0, evidence: [] as string[] },
+    WordPress: { score: 0, evidence: [] as string[] },
+    Drupal: { score: 0, evidence: [] as string[] },
+  }
+
+  const addEvidence = (
+    platform: keyof typeof platforms,
+    score: number,
+    message: string
+  ) => {
+    platforms[platform].score += score
+    platforms[platform].evidence.push(message)
+  }
+
+  /*
+   * MediaWiki
+   */
+
+  if (
+    document.querySelector(
+      'meta[name="generator"][content*="MediaWiki"]'
+    )
+  ) {
+    addEvidence(
+      'MediaWiki',
+      5,
+      'MediaWiki generator metadata detected'
+    )
+  }
+
+  if (
+    document.querySelector(
+      '#mw-page-base, #mw-head, #content.mw-body'
+    )
+  ) {
+    addEvidence(
+      'MediaWiki',
+      4,
+      'MediaWiki page structure detected'
+    )
+  }
+
+  if (
+    document.querySelector(
+      'link[href*="load.php"]'
+    )
+  ) {
+    addEvidence(
+      'MediaWiki',
+      2,
+      'MediaWiki resource loader detected'
+    )
+  }
+
+  /*
+   * WordPress
+   */
+
+  if (
+    document.querySelector(
+      'meta[name="generator"][content*="WordPress"]'
+    )
+  ) {
+    addEvidence(
+      'WordPress',
+      5,
+      'WordPress generator metadata detected'
+    )
+  }
+
+  if (
+    document.querySelector(
+      'link[href*="/wp-content/"], script[src*="/wp-content/"]'
+    )
+  ) {
+    addEvidence(
+      'WordPress',
+      4,
+      'WordPress content directory detected'
+    )
+  }
+
+  if (
+    document.querySelector(
+      'link[href*="/wp-includes/"], script[src*="/wp-includes/"]'
+    )
+  ) {
+    addEvidence(
+      'WordPress',
+      3,
+      'WordPress includes directory detected'
+    )
+  }
+
+  /*
+   * Drupal
+   */
+
+  if (
+    document.querySelector(
+      'meta[name="Generator"][content*="Drupal"], meta[name="generator"][content*="Drupal"]'
+    )
+  ) {
+    addEvidence(
+      'Drupal',
+      5,
+      'Drupal generator metadata detected'
+    )
+  }
+
+  if (
+    document.querySelector(
+      '[class*="drupal"], [id*="drupal"]'
+    )
+  ) {
+    addEvidence(
+      'Drupal',
+      2,
+      'Drupal-related DOM marker detected'
+    )
+  }
+
+  /*
+   * Select strongest platform
+   */
+
+  const detected = Object.entries(platforms)
+    .sort(([, a], [, b]) => b.score - a.score)[0]
+
+  const [name, result] = detected
+
+  if (result.score < 3) {
+    return {
+      name: 'Not detected',
+      confidence: 'None',
+      evidence: [],
+    }
+  }
+
+  const confidence =
+    result.score >= 7
+      ? 'High'
+      : result.score >= 4
+        ? 'Medium'
+        : 'Low'
+
+  return {
+    name,
+    confidence,
+    evidence: result.evidence,
   }
 }
 
 function detectMetaFramework(): DetectionResult {
-  const evidence: string[] = []
+  const frameworks = {
+    'Next.js': { score: 0, evidence: [] as string[] },
+    Nuxt: { score: 0, evidence: [] as string[] },
+    SvelteKit: { score: 0, evidence: [] as string[] },
+    Astro: { score: 0, evidence: [] as string[] },
+    Remix: { score: 0, evidence: [] as string[] },
+    Gatsby: { score: 0, evidence: [] as string[] },
+  }
 
-  // Next.js
+  const addEvidence = (
+    framework: keyof typeof frameworks,
+    score: number,
+    message: string
+  ) => {
+    frameworks[framework].score += score
+    frameworks[framework].evidence.push(message)
+  }
+
+  const scripts = Array.from(document.scripts)
+    .map((script) => script.src.toLowerCase())
+    .filter(Boolean)
+
+  const links = Array.from(
+    document.querySelectorAll<HTMLLinkElement>('link')
+  )
+    .map((link) => link.href.toLowerCase())
+    .filter(Boolean)
+
+  const resources = [...scripts, ...links].join(' ')
+
+  /*
+   * Next.js
+   */
+
+  if (document.querySelector('#__next')) {
+    addEvidence(
+      'Next.js',
+      5,
+      'Next.js root element detected'
+    )
+  }
+
+  if (resources.includes('/_next/')) {
+    addEvidence(
+      'Next.js',
+      5,
+      'Next.js assets detected'
+    )
+  }
+
   if (
-    document.querySelector('#__next') ||
-    document.querySelector('script[src*="/_next/"]') ||
-    document.querySelector('script[src*="_next/"]')
+    document.querySelector(
+      'script#__NEXT_DATA__'
+    )
   ) {
-    evidence.push('Next.js DOM or asset marker detected')
+    addEvidence(
+      'Next.js',
+      5,
+      'Next.js data script detected'
+    )
+  }
 
+  /*
+   * Nuxt
+   */
+
+  if (
+    document.querySelector(
+      '#__nuxt, #__NUXT__'
+    )
+  ) {
+    addEvidence(
+      'Nuxt',
+      5,
+      'Nuxt root element detected'
+    )
+  }
+
+  if (resources.includes('/_nuxt/')) {
+    addEvidence(
+      'Nuxt',
+      5,
+      'Nuxt assets detected'
+    )
+  }
+
+  /*
+   * SvelteKit
+   */
+
+  if (
+    document.querySelector(
+      '[data-sveltekit-preload-data]'
+    )
+  ) {
+    addEvidence(
+      'SvelteKit',
+      5,
+      'SvelteKit preload marker detected'
+    )
+  }
+
+  if (resources.includes('/_app/')) {
+    addEvidence(
+      'SvelteKit',
+      1,
+      'SvelteKit-style application assets detected'
+    )
+  }
+
+  /*
+   * Astro
+   */
+
+  if (
+    document.querySelector(
+      '[data-astro-cid]'
+    )
+  ) {
+    addEvidence(
+      'Astro',
+      5,
+      'Astro component marker detected'
+    )
+  }
+
+  if (
+    document.querySelector(
+      'astro-island'
+    )
+  ) {
+    addEvidence(
+      'Astro',
+      5,
+      'Astro island detected'
+    )
+  }
+
+  /*
+   * Remix
+   */
+
+  if (
+    document.querySelector(
+      '#__remixContext'
+    )
+  ) {
+    addEvidence(
+      'Remix',
+      5,
+      'Remix runtime context detected'
+    )
+  }
+
+  /*
+   * Gatsby
+   */
+
+  if (
+    document.querySelector(
+      '#___gatsby'
+    )
+  ) {
+    addEvidence(
+      'Gatsby',
+      5,
+      'Gatsby root element detected'
+    )
+  }
+
+  const detected = Object.entries(frameworks)
+    .sort(([, a], [, b]) => b.score - a.score)[0]
+
+  const [name, result] = detected
+
+  if (result.score < 3) {
     return {
-      name: 'Next.js',
-      confidence: 'High',
-      evidence,
+      name: 'Not detected',
+      confidence: 'None',
+      evidence: [],
     }
   }
 
-  // Nuxt
-  if (
-    document.querySelector('#__nuxt') ||
-    document.querySelector('#__NUXT__') ||
-    document.querySelector('script[src*="/_nuxt/"]')
-  ) {
-    evidence.push('Nuxt DOM or asset marker detected')
-
-    return {
-      name: 'Nuxt',
-      confidence: 'High',
-      evidence,
-    }
-  }
+  const confidence =
+    result.score >= 7
+      ? 'High'
+      : result.score >= 4
+        ? 'Medium'
+        : 'Low'
 
   return {
-    name: 'Not detected',
-    confidence: 'None',
-    evidence: [],
+    name,
+    confidence,
+    evidence: result.evidence,
   }
-}  
+}
 function collectTechnologyDiagnostics(): TechnologyDiagnostics {
   const scriptSources = Array.from(document.scripts)
     .map((script) => script.src)
@@ -308,9 +870,10 @@ function collectTechnologyDiagnostics(): TechnologyDiagnostics {
 }
 
 function analyzePage(): PageAnalysis {
-    const frameworkDetection = detectFramework()
-    const metaFrameworkDetection = detectMetaFramework()
-    const diagnostics = collectTechnologyDiagnostics()
+  const frameworkDetection = detectFramework()
+  const metaFrameworkDetection = detectMetaFramework()
+  const platformDetection = detectPlatform()
+  const diagnostics = collectTechnologyDiagnostics()
   
     const images = document.images
   
@@ -331,6 +894,9 @@ function analyzePage(): PageAnalysis {
       metaFrameworkConfidence: metaFrameworkDetection.confidence,
       metaFrameworkEvidence: metaFrameworkDetection.evidence,
   
+      platform: platformDetection.name,
+      platformConfidence: platformDetection.confidence,
+      platformEvidence: platformDetection.evidence,
       headings: document.querySelectorAll(
         'h1, h2, h3, h4, h5, h6'
       ).length,
@@ -897,6 +1463,8 @@ if (height < 180) continue
     darkEnabled: false,
     wideContentEnabled: false,
     sidebarHidden: false,
+    adsHidden: false,
+
   })
   .then((stored) => {
     const settings = stored as unknown as WebShiftSettings
@@ -905,6 +1473,8 @@ if (height < 180) continue
     toggleDark(settings.darkEnabled)
     toggleWideContent(settings.wideContentEnabled)
     toggleSidebar(settings.sidebarHidden)
+    toggleAds(settings.adsHidden)
+
   })
   .catch((error) => {
     console.error(
